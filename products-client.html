@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products Interface</title>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    .product-list { margin-bottom: 2rem; }
+    .product { display: flex; align-items: center; margin-bottom: 0.5rem; }
+    .product span { flex: 1; }
+    .delete-btn { background: #c00; color: #fff; border: none; padding: 0.3rem 1rem; cursor: pointer; }
+    .add-form { margin-top: 2rem; }
+    .add-form input { margin-right: 0.5rem; }
+    .message { color: green; margin-bottom: 1rem; }
+    .error { color: red; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Products</h1>
+  <div class="message" id="message"></div>
+  <div class="error" id="error"></div>
+  <div class="product-list" id="productList"></div>
+  <h2>Add Product</h2>
+  <form class="add-form" id="addForm">
+    <input type="text" id="name" placeholder="Product name" required />
+    <input type="number" id="price" placeholder="Price" required />
+    <button type="submit">Add</button>
+  </form>
+  <script>
+    const apiUrl = 'http://localhost:3000/products';
+    const productList = document.getElementById('productList');
+    const addForm = document.getElementById('addForm');
+    const message = document.getElementById('message');
+    const error = document.getElementById('error');
+
+    function showMessage(msg) {
+      message.textContent = msg;
+      setTimeout(() => message.textContent = '', 2000);
+    }
+    function showError(msg) {
+      error.textContent = msg;
+      setTimeout(() => error.textContent = '', 3000);
+    }
+
+    function renderProducts(products) {
+      productList.innerHTML = '';
+      if (products.length === 0) {
+        productList.textContent = 'No products available.';
+        return;
+      }
+      products.forEach(product => {
+        const div = document.createElement('div');
+        div.className = 'product';
+        div.innerHTML = `<span>(${product.id}) ${product.name} - $${product.price}</span>`;
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Delete';
+        delBtn.className = 'delete-btn';
+        delBtn.onclick = () => deleteProduct(product.id);
+        div.appendChild(delBtn);
+        productList.appendChild(div);
+      });
+    }
+
+    function fetchProducts() {
+      axios.get(apiUrl)
+        .then(res => renderProducts(res.data.items))
+        .catch(() => showError('Failed to fetch products'));
+    }
+
+    function deleteProduct(id) {
+      axios.delete(`${apiUrl}/${id}`)
+        .then(() => {
+          showMessage('Product deleted');
+          fetchProducts();
+        })
+        .catch(() => showError('Delete failed'));
+    }
+
+    addForm.onsubmit = function(e) {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const price = parseFloat(document.getElementById('price').value);
+      if (!name || isNaN(price)) {
+        showError('Name and price required');
+        return;
+      }
+      axios.post(apiUrl, { name, price })
+        .then(() => {
+          showMessage('Product added');
+          addForm.reset();
+          fetchProducts();
+        })
+        .catch(() => showError('Add failed'));
+    };
+
+    // Initial load
+    fetchProducts();
+  </script>
+</body>
+</html>
